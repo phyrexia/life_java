@@ -1,19 +1,20 @@
 package com.victone.life.concurrency;
 
-import com.victone.life.logic.LifeBoard;
+import javafx.scene.control.Button;
 
 import java.util.TimerTask;
 
+@SuppressWarnings("Unused")
 public class AutoStepTask extends TimerTask {
 
-    private LifeBoard gb;
+    private Button stepButton;
 
-    public AutoStepTask(LifeBoard gb) {
-        this.gb = gb;
+    public AutoStepTask(Button stepButton) {
+        this.stepButton = stepButton;
     }
 
     @Override
     public void run() {
-        gb.step();
+        stepButton.fire();
     }
 }
