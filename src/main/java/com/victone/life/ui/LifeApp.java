@@ -1,9 +1,13 @@
 package com.victone.life.ui;
 
 import com.victone.life.logic.Life;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,18 +15,17 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 public class LifeApp extends Application {
 
@@ -32,7 +35,7 @@ public class LifeApp extends Application {
             + "Any live cell with 2 or 3 neighbors lives. Otherwise, it dies.\n"
             + "Any dead cell with exactly three neighbors springs forth.";
 
-    private static final int DEFAULT_FRAMEWIDTH = 1024, DEFAULT_FRAMEHEIGHT = 768;
+    private static final int DEFAULT_FRAMEWIDTH = 1080, DEFAULT_FRAMEHEIGHT = 768;
 
     private Life life;
     private Button helpButton, clearButton, stepButton, randomizeButton, slowerButton, fasterButton, zoomInButton,
@@ -40,22 +43,23 @@ public class LifeApp extends Application {
     private Label frequencyLabel, generationLabel;
     private CheckBox toroidalCheckBox, autoCheckBox;
 
-    private double zoomFactor;
-    private int frequency = 2;
+    private Timeline timeline;
+    private Slider frequencySlider;
+
+    private int fps = 2;
     private boolean automatic;
 
+    private Canvas lifeCanvas;
+    private GraphicsContext gc;
+    private Label zoomLabel;
+    private int zoomFactor;
 
     @Override
     public void start(Stage stage) throws Exception {
-        life = new Life(false);
+        life = new Life(80, 60, false);
+        life.randomize(false);
 
         stage.setTitle(LABEL + " version " + VERSION);
-
-        Canvas lifeCanvas = new Canvas(1024, 700);
-        GraphicsContext gc = lifeCanvas.getGraphicsContext2D();
-        //gc.setFill(Color.DARKGOLDENROD);
-        //gc.fillRect(0,0,1024,700);
-
 
         helpButton = new Button("Help");
         helpButton.setTooltip(new Tooltip("You should probably just click this button instead of hovering over it."));
@@ -102,15 +106,18 @@ public class LifeApp extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 life.extinction();
+                if (automatic) {
+                    toggleAutoMode();
+                }
                 update();
             }
         });
 
         stepButton = new Button("Step");
         stepButton.setTooltip(new Tooltip("Move the simulation forward by one step."));
-        stepButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        stepButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(MouseEvent mouseEvent) {
+            public void handle(ActionEvent actionEvent) {
                 life.step();
                 drawLifeBoard();
                 updateLabels();
@@ -123,39 +130,66 @@ public class LifeApp extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 life.randomize(true);
-                drawLifeBoard();
+                update();
             }
         });
 
-        slowerButton = new Button("Slower");
+        frequencySlider = new Slider();
+        frequencySlider.setMin(1);
+        frequencySlider.setMax(25);
+        frequencySlider.setValue(2);
+        frequencySlider.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
+                fps = number2.intValue();
+                if (automatic) {
+                    updateTimer();
+                }
+                updateLabels();
+            }
+        });
+        frequencySlider.setTooltip(new Tooltip("Drag this slider to change the speed of Auto Mode"));
+
+        /* slowerButton = new Button("Slower");
         slowerButton.setTooltip(new Tooltip("Decrease the speed in Automatic Mode."));
-        //slowerButton.setDisable(true);
         slowerButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                frequency--;
+                if (fps > 1) {
+                    fps--;
+                }
+                if (automatic) {
+                    updateTimer();
+                }
                 updateLabels();
             }
-        });
+        }); */
 
-        fasterButton = new Button("Faster");
+       /* fasterButton = new Button("Faster");
         fasterButton.setTooltip(new Tooltip("Increase the speed in Automatic Mode."));
-        //fasterButton.setDisable(true);
         fasterButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                frequency++;
+                if (fps < 60) {
+                    fps++;
+                }
+                if (automatic) {
+                    updateTimer();
+                }
                 updateLabels();
             }
-        });
+        }); */
 
-        zoomInButton = new Button("Zoom In");
+        /* zoomInButton = new Button("Zoom In");
         zoomInButton.setTooltip(new Tooltip("Zoom in, thus decreasing the number of cells visible."));
         zoomInButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                //transform zoomFactor
-                updateLabels();
+                if (zoomFactor < 20) {
+                    zoomFactor++;
+                    life.contract();
+                    update();
+                }
             }
         });
 
@@ -164,15 +198,42 @@ public class LifeApp extends Application {
         zoomOutButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                //transform zoomFactor
-                updateLabels();
+                if (zoomFactor > -30) {
+                    zoomFactor--;
+                    life.expand();
+                    update();
+                }
+            }
+        }); */
+
+        Slider zoomSlider = new Slider();
+        zoomSlider.setMin(-30);
+        zoomSlider.setMax(30);
+        zoomSlider.setValue(0);
+        zoomSlider.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
+                zoomFactor = number2.intValue();
+                if (number.intValue() > number2.intValue()) {
+                    //going down
+                    for (int i = number.intValue(); i > number2.intValue(); i--) {
+                        life.expand();
+                    }
+                } else {
+                    //going up
+                    for (int i = number.intValue(); i < number2.intValue(); i++) {
+                        life.contract();
+                    }
+                }
+                update();
             }
         });
 
-        frequencyLabel = new Label(frequency + " FPS");
+        frequencyLabel = new Label("Speed: ");
         generationLabel = new Label("Gen: " + life.getGeneration());
+        zoomLabel = new Label("Zoom: ");
 
-        autoCheckBox = new CheckBox("Auto-Mode");
+        autoCheckBox = new CheckBox("Auto");
         autoCheckBox.setTooltip(new Tooltip("Checking this box will automatically step the game forward at the specified frequency."));
         autoCheckBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
@@ -190,28 +251,58 @@ public class LifeApp extends Application {
             }
         });
 
+        HBox speedBox = new HBox();
+        speedBox.setPadding(new Insets(10, 0, 10, 0));
+        speedBox.getChildren().addAll(frequencyLabel, frequencySlider);
+
+        HBox zoomBox = new HBox();
+        zoomBox.setPadding(new Insets(10, 0, 10, 0));
+        zoomBox.getChildren().addAll(zoomLabel, zoomSlider);
+
         HBox controlBox = new HBox(10);
         controlBox.setPadding(new Insets(10, 10, 10, 10));
         controlBox.setMaxHeight(60);
         controlBox.setMinHeight(40);
-        controlBox.getChildren().addAll(helpButton, clearButton, randomizeButton, stepButton, autoCheckBox, slowerButton,
-                frequencyLabel, fasterButton, toroidalCheckBox, zoomInButton, zoomOutButton, generationLabel);
+        controlBox.getChildren().addAll(helpButton, clearButton, randomizeButton, stepButton, zoomBox,
+                speedBox, autoCheckBox, toroidalCheckBox, generationLabel);
         controlBox.setAlignment(Pos.CENTER);
 
+        lifeCanvas = new Canvas(DEFAULT_FRAMEWIDTH - 20, DEFAULT_FRAMEHEIGHT - 20);
+        gc = lifeCanvas.getGraphicsContext2D();
+
+        HBox graphicsBox = new HBox(10);
+        graphicsBox.setAlignment(Pos.CENTER);
+        graphicsBox.getChildren().add(lifeCanvas);
+
         BorderPane root = new BorderPane();
-        root.setCenter(lifeCanvas);
+        root.setCenter(graphicsBox);
         root.setBottom(controlBox);
 
         Scene scene = new Scene(root, DEFAULT_FRAMEWIDTH, DEFAULT_FRAMEHEIGHT);
-        //scene.getStylesheets().add("style.css");
-        stage.titleProperty().bind(
-                scene.widthProperty().asString().
-                        concat(" : ").
-                        concat(scene.heightProperty().asString()));
+
+        scene.heightProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
+                clearCanvas(Color.WHITE);
+                lifeCanvas.setHeight(number2.doubleValue() - 40);
+                drawLifeBoard();
+            }
+        });
+
+        scene.widthProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
+                clearCanvas(Color.WHITE);
+                lifeCanvas.setWidth(number2.doubleValue() - 20);
+                drawLifeBoard();
+            }
+        });
 
         stage.setScene(scene);
         stage.setMinWidth(925);
         stage.setMinHeight(305);
+
+        drawLifeBoard();
 
         stage.show();
     }
@@ -220,11 +311,32 @@ public class LifeApp extends Application {
         automatic = !automatic;
         if (automatic) {
             //start the timer
+            timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    stepButton.fire();
+                }
+            }));
+            timeline.setCycleCount(Timeline.INDEFINITE);
+            timeline.play();
         } else {
             //stop the timer
+            timeline.stop();
         }
     }
 
+    private void updateTimer() {
+        timeline.stop();
+        timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                stepButton.fire();
+            }
+        }));
+        timeline.setCycleCount(Timeline.INDEFINITE);
+        timeline.play();
+
+    }
 
     private void update() {
         drawLifeBoard();
@@ -232,12 +344,35 @@ public class LifeApp extends Application {
     }
 
     private void updateLabels() {
-        frequencyLabel.setText(frequency + " FPS");
         generationLabel.setText("Gen: " + life.getGeneration());
     }
 
     private void drawLifeBoard() {
+        double cellWidth, cellHeight;
+        cellWidth = lifeCanvas.getWidth() / life.getWidth();
+        cellHeight = lifeCanvas.getHeight() / life.getHeight();
 
+        clearCanvas(Color.WHITE);
+
+        double curX, curY = 0.0;
+        for (int y = 0; y < life.getHeight(); y++) {
+            curX = 0;
+            for (int x = 0; x < life.getWidth(); x++) {
+                if (life.getCell(x, y)) {
+                    gc.setFill(Color.BLACK);
+                } else {
+                    gc.setFill(Color.WHITE);
+                }
+                gc.fillRect(curX, curY, cellWidth, cellHeight);
+                curX += cellWidth;
+            }
+            curY += cellHeight;
+        }
+    }
+
+    private void clearCanvas(Color color) {
+        gc.setFill(color);
+        gc.fillRect(0, 0, lifeCanvas.getWidth(), lifeCanvas.getHeight());
     }
 
     public static void main(String[] args) {

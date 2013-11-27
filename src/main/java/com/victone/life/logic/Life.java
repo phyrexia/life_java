@@ -53,13 +53,39 @@ public class Life {
         stack.push(lifeBoard);
     }
 
+    public void expand() {
+
+        width += 2;
+        height += 2;
+        boolean[][] bigBoard = new boolean[height][width];
+        boolean[][] oldBoard = copyOf(stack.peek());
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                bigBoard[y][x] = oldBoard[y-1][x-1];
+            }
+        }
+        stack.push(bigBoard);
+    }
+
+    public void contract() {
+        width -= 2;
+        height -= 2;
+        boolean[][] littleBoard = new boolean[height][width];
+        boolean[][] oldBoard = copyOf(stack.peek());
+        for (int y = 0; y < height - 2; y++) {
+            for (int x = 0; x < width - 2; x++) {
+                littleBoard[y][x] = oldBoard[y+1][x+1];
+            }
+        }
+        stack.push(littleBoard);
+    }
+
     public boolean isToroidal() {
         return toroidal;
     }
 
     public void setToroidal(boolean toroidal) {
         this.toroidal = toroidal;
-        System.out.println(this.toroidal);
     }
 
     public Stack<boolean[][]> getStack() {
@@ -252,4 +278,6 @@ public class Life {
         life.cycleCell(6, 5);
         life.cycleCell(7, 5);
     }
+
+
 }
