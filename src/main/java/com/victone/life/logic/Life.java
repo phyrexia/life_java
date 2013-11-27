@@ -14,7 +14,7 @@ public class Life {
     private Stack<boolean[][]> stack;
 
     private int width, height, generation;
-    private boolean torus;
+    private boolean toroidal;
 
     public static boolean[][] copyOf(boolean[][] source) {
         boolean[][] dest = new boolean[source.length][source[0].length];
@@ -32,14 +32,14 @@ public class Life {
         this(width, height, false);
     }
 
-    public Life(boolean torus) {
-        this(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, torus);
+    public Life(boolean toroidal) {
+        this(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, toroidal);
     }
 
-    public Life(int width, int height, boolean torus) {
+    public Life(int width, int height, boolean toroidal) {
         this.width = width;
         this.height = height;
-        this.torus = torus;
+        this.toroidal = toroidal;
 
         boolean[][] lifeBoard = new boolean[height][width];
         for (int y = 0; y < height; y++) {
@@ -53,19 +53,20 @@ public class Life {
         stack.push(lifeBoard);
     }
 
-    public boolean isTorus() {
-        return torus;
+    public boolean isToroidal() {
+        return toroidal;
     }
 
-    public void setTorus(boolean torus) {
-        this.torus = torus;
+    public void setToroidal(boolean toroidal) {
+        this.toroidal = toroidal;
+        System.out.println(this.toroidal);
     }
 
     public Stack<boolean[][]> getStack() {
         return stack;
     }
 
-    private int getGeneration() {
+    public int getGeneration() {
         return generation;
     }
 
@@ -122,7 +123,7 @@ public class Life {
 
     public int getNumberNeighbors(int xCoord, int yCoord) {
         int numNeighbors = 0;
-        if (torus) {
+        if (toroidal) {
             for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
                 for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
                     int toroidalYpos, toroidalXpos;
@@ -162,21 +163,16 @@ public class Life {
         return numNeighbors;
     }
 
-    public void clearStack() {
+    public void extinction() {
         stack = new Stack<>();
         generation = 0;
         boolean[][] newBoard = new boolean[height][width];
-        for (int y = 0; y < DEFAULT_BOARD_HEIGHT; y++) {
-            for (int x = 0; x < DEFAULT_BOARD_WIDTH; x++) {
-                newBoard[y][x] = false;
-            }
-        }
         stack.push(newBoard);
     }
 
     public void randomize(boolean clearStack) {
         if (clearStack) {
-            clearStack();
+            extinction();
         }
         Random random = new Random();
         for (int y = 0; y < height; y++) {
