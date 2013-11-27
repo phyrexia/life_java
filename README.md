@@ -1,10 +1,9 @@
 life_java
 =========
 
-Conway's Life, implemented in Java 1.7
-  
-This program used to run quite nicely.  Then an undetermined JRE update was released and the performance went to hell.
+Conway's Life, implemented in Java 1.7 and JavaFX 2.2
 
-WYSIWYG. 
-
-Version 2.0 with more options and increased speed coming soon.
+CHANGELOG
+=========
+27 November 2013 - RC1 - A total rewrite, over 95% new code.  Mostly JavaFX compliant, although I'm having difficulties
+using the FXML loader, and so all of the MVC code is dumped into LifeApp.
