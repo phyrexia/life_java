@@ -12,8 +12,6 @@
         <name>Victone</name>
     </organization>
 
-
-
     <build>
         <plugins>
             <plugin>
