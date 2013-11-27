@@ -1,4 +1,4 @@
-package com.victone.life.logic;
+package com.victone.life;
 
 import java.util.Arrays;
 import java.util.Random;
