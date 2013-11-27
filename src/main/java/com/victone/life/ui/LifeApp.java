@@ -101,7 +101,7 @@ public class LifeApp extends Application {
         clearButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                life.clear();
+                life.extinction();
                 update();
             }
         });
