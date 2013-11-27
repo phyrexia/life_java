@@ -6,17 +6,15 @@ import java.util.Stack;
 
 public class Life {
 
+    private static final int DEFAULT_BOARD_WIDTH = 50;
+    private static final int DEFAULT_BOARD_HEIGHT = 20;
     private static final boolean ALIVE = true;
     private static final boolean DEAD = false;
 
-    private static final int defaultBoardWidth = 50;
-    private static int defaultBoardHeight = 20;
-
     private Stack<boolean[][]> stack;
 
-    private int width, height;
-    private boolean toroidal;
-    private int generation;
+    private int width, height, generation;
+    private boolean torus;
 
     public static boolean[][] copyOf(boolean[][] source) {
         boolean[][] dest = new boolean[source.length][source[0].length];
@@ -27,24 +25,21 @@ public class Life {
     }
 
     public Life() {
-        this(defaultBoardWidth, defaultBoardHeight, false);
+        this(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, false);
     }
 
     public Life(int width, int height) {
         this(width, height, false);
     }
 
-    public Life(boolean toroidal) {
-        this(defaultBoardWidth, defaultBoardHeight, toroidal);
+    public Life(boolean torus) {
+        this(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, torus);
     }
 
-    public Life(int width, int height, boolean toroidal) { //v2
+    public Life(int width, int height, boolean torus) {
         this.width = width;
         this.height = height;
-        this.toroidal = toroidal;
-
-        stack = new Stack<>();
-        generation = 0;
+        this.torus = torus;
 
         boolean[][] lifeBoard = new boolean[height][width];
         for (int y = 0; y < height; y++) {
@@ -52,15 +47,18 @@ public class Life {
                 lifeBoard[y][x] = DEAD;
             }
         }
+
+        generation = 0;
+        stack = new Stack<>();
         stack.push(lifeBoard);
     }
 
-    public boolean isToroidal() {
-        return toroidal;
+    public boolean isTorus() {
+        return torus;
     }
 
-    public void setToroidal(boolean toroidal) {
-        this.toroidal = toroidal;
+    public void setTorus(boolean torus) {
+        this.torus = torus;
     }
 
     public Stack<boolean[][]> getStack() {
@@ -79,13 +77,11 @@ public class Life {
         return width;
     }
 
-    public boolean cycleCell(int xCoord, int yCoord) {  //v2b1
-        //boolean[][] newBoard = copyOf(stack.peek());
-        //stack.push(newBoard);
+    public boolean cycleCell(int xCoord, int yCoord) {
         return stack.peek()[yCoord][xCoord] = !stack.peek()[yCoord][xCoord];
     }
 
-    public boolean getCell(int xCoord, int yCoord) { //v2
+    public boolean getCell(int xCoord, int yCoord) {
         if (isCellCoordinateValid(xCoord, yCoord)) {
             return stack.peek()[yCoord][xCoord];
         } else {
@@ -93,13 +89,12 @@ public class Life {
         }
     }
 
-    private boolean isCellCoordinateValid(int xCoord, int yCoord) {  //v2b1 creation
+    private boolean isCellCoordinateValid(int xCoord, int yCoord) {
         return xCoord >= 0 && yCoord >= 0 && xCoord < width && yCoord < height;
     }
 
-    public void step() { //v2b1
+    public void step() {
         boolean[][] newBoard = new boolean[height][width];
-
         int numberNeighbors;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -119,24 +114,38 @@ public class Life {
         generation++;
     }
 
-    public void step(int numSteps) { //v2 unchanged
+    public void step(int numSteps) {
         for (int i = 1; i <= numSteps; i++) {
             step();
         }
     }
 
-    public int getNumberNeighbors(int xCoord, int yCoord) {  //v2 approved (unfinished)
+    public int getNumberNeighbors(int xCoord, int yCoord) {
         int numNeighbors = 0;
-        if (toroidal) {
+        if (torus) {
             for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
                 for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
+                    int toroidalYpos, toroidalXpos;
 
-                    //todo: toroidal neighbor algorithm
+                    if (neighborYpos < 0) {
+                        toroidalYpos = height + neighborYpos;
+                    } else if (neighborYpos >= height) {
+                        toroidalYpos = neighborYpos - height;
+                    } else {
+                        toroidalYpos = neighborYpos;
+                    }
 
-                    if (neighborXpos == xCoord && neighborYpos == yCoord)
-                        continue; // we skip this cell since it's not a neighbor of itself
-                    else if (stack.peek()[neighborYpos][neighborXpos]) {
-                        numNeighbors++;
+                    if (neighborXpos < 0) {
+                        toroidalXpos = width + neighborXpos;
+                    } else if (neighborXpos >= width) {
+                        toroidalXpos = neighborXpos - width;
+                    } else {
+                        toroidalXpos = neighborXpos;
+                    }
+
+                    if (isCellCoordinateValid(toroidalXpos, toroidalYpos)) {
+                        if ((toroidalXpos != xCoord || toroidalYpos != yCoord) && stack.peek()[toroidalYpos][toroidalXpos] )
+                            numNeighbors++;
                     }
                 }
             }
@@ -144,9 +153,7 @@ public class Life {
             for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
                 for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
                     if (isCellCoordinateValid(neighborXpos, neighborYpos)) {
-                        if (neighborXpos == xCoord && neighborYpos == yCoord)
-                            continue; // we skip this cell since it's not a neighbor of itself
-                        else if (stack.peek()[neighborYpos][neighborXpos])
+                        if ((neighborXpos != xCoord || neighborYpos != yCoord) && stack.peek()[neighborYpos][neighborXpos] )
                             numNeighbors++;
                     }
                 }
@@ -155,26 +162,23 @@ public class Life {
         return numNeighbors;
     }
 
-    public void clearStack() {   //v2.0b1
+    public void clearStack() {
         stack = new Stack<>();
         generation = 0;
-
         boolean[][] newBoard = new boolean[height][width];
-        for (int y = 0; y < defaultBoardHeight; y++) {
-            for (int x = 0; x < defaultBoardWidth; x++) {
+        for (int y = 0; y < DEFAULT_BOARD_HEIGHT; y++) {
+            for (int x = 0; x < DEFAULT_BOARD_WIDTH; x++) {
                 newBoard[y][x] = false;
             }
         }
         stack.push(newBoard);
     }
 
-    public void randomize(boolean clearStack) { //v2
+    public void randomize(boolean clearStack) {
         if (clearStack) {
             clearStack();
         }
-        // randomly cycles cells
         Random random = new Random();
-
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (random.nextBoolean()) {
@@ -184,7 +188,7 @@ public class Life {
         }
     }
 
-    public void invert() {  //v2
+    public void invert() {
         //flip dead cells to alive and alive cells to dead
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -230,8 +234,9 @@ public class Life {
     }
 
     public static void main(String... args) {
-        Life life = new Life();
-        life.randomize(true);
+        Life life = new Life(true);
+        //life.randomize(true);
+        testGlider(life);
         while (life.getGeneration() < 1000) {
             System.out.println(life);
             try {
