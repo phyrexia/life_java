@@ -9,34 +9,33 @@ import java.awt.event.*;
 //import java.awt.event.MouseEvent;
 //import java.awt.event.MouseMotionListener;
 
+@Deprecated
 public class LifeMainGUI extends JFrame implements ActionListener {
 
 	private static final String LABEL = "Jim Conway's The Game of Life (implemented by Victor Wilson)";
 
-	private static final String VERSION = "1.1";
-	private static final long serialVersionUID = 715255226314002424L;
+	private static final String VERSION = "2.0b1";
 	private static final int FRAMEWIDTH = 1000, FRAMEHEIGHT = 680;
 
 	private static final String HELP_STRING = "Jim Conway's Game of Life\nWritten by Victor Wilson Sep 8-13 2012\n\n"
 			+ "Any live cell with 2 or 3 neighbors lives. Otherwise, it dies.\n"
 			+ "Any dead cell with exactly three neighbors springs forth.";
 
-	// private MouseEvent previousMouseEvent = null;
-
 	private LifeBoard gameBoard;
 
 	private JLabel generationsLabel, frequencyLabel;
-	private JButton stepButton, clearButton, autoButton, randomButton,
-			fastButton, slowButton, helpButton;
-	private JButton buttonBoard[][];
-	private JPanel gamePanel, controlPanel;
 
-	public LifeMainGUI(LifeBoard gb) {
+    private JButton stepButton, clearButton, autoButton, randomButton,
+			fastButton, slowButton, helpButton, newButton;
+
+    private JPanel gamePanel, controlPanel;
+    private int frequencyInHertz;
+
+    public LifeMainGUI(LifeBoard gb) {
 		super(LABEL + " version " + VERSION);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLayout(new BorderLayout());
 		setSize(FRAMEWIDTH, FRAMEHEIGHT);
-		//setResizable(false);
 
 		gameBoard = gb;
 
@@ -50,7 +49,7 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 		controlPanel = new JPanel(new FlowLayout());
 
 		generationsLabel = new JLabel("Generation: 0");
-		frequencyLabel = new JLabel("Frequency: " + gameBoard.getFrequency());
+		frequencyLabel = new JLabel("Frequency: " + frequencyInHertz + " per second.");
 
 		initButtonBoard();
 
@@ -73,7 +72,7 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 		// add buttonBoard to the panel
 		for (int i = 0; i < gameBoard.getHeight(); i++) {
 			for (int j = 0; j < gameBoard.getWidth(); j++) {
-				gamePanel.add(buttonBoard[i][j]);
+			//	gamePanel.add(buttonBoard[i][j]);
 			}
 		}
 	}
@@ -136,7 +135,7 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 	private void addGameBoardListeners() {
 		for (int i = 0; i < gameBoard.getHeight(); i++) {
 			for (int j = 0; j < gameBoard.getWidth(); j++) {
-				buttonBoard[i][j].addActionListener(this);
+				//buttonBoard[i][j].addActionListener(this);
 				//buttonBoard[i][j].addMouseMotionListener(this);
 			}
 		}
@@ -144,19 +143,19 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 	
 	private void initButtonBoard() {
 		int height = gameBoard.getHeight(), width = gameBoard.getWidth();
-		buttonBoard = new JButton[height][width];
+		//buttonBoard = new JButton[height][width];
 		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) //take button from cell
-				buttonBoard[i][j] = gameBoard.getCell(j, i).getButton();
+		//	for (int j = 0; j < width; j++) //take button from cell
+				//buttonBoard[i][j] = gameBoard.getCell(j, i).getButton();
 		}
 	}
 
 	public void updateCounter() {
-		generationsLabel.setText("Generation: " + gameBoard.getGenerations());
+		//generationsLabel.setText("Generation: " + gameBoard.getGenerations());
 	}
 	
 	public void updateFrequency() {
-		frequencyLabel.setText("Frequency: " + gameBoard.getFrequency());
+		//frequencyLabel.setText("Frequency: " + gameBoard.getFrequency());
 	}
 
 	@Override
@@ -182,8 +181,8 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 		} else {
 			// parse button name into x and y coordinates
 			String split[] = command.split("[.]");
-			gameBoard.click(Integer.parseInt(split[0]),
-					Integer.parseInt(split[1]));
+			//gameBoard.click(Integer.parseInt(split[0]),
+			//		Integer.parseInt(split[1]));
 		}
 	}
 
@@ -193,9 +192,9 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 	}
 
 	private void clear() {
-		if (gameBoard.getAuto()) {
-			auto();
-		}
+		//if (gameBoard.getAuto()) {
+		//	auto();
+		//}
 		gameBoard.clearBoard();
 		updateCounter();
 	}
@@ -206,43 +205,43 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 	}
 
 	private void randomize() {
-		gameBoard.randomize();
+		//gameBoard.randomize();
 		updateCounter();
 	}
 
 	private void auto() { // this required threading to work
-		if (!gameBoard.getAuto()) {
+		//if (!gameBoard.getAuto()) {
 			autoButton.setText("Stop");
 			autoButton
 			.setToolTipText("Stop automatic advancing of the simulation");
 			stepButton.setEnabled(false);
 			//fastButton.setEnabled(true);
 			//slowButton.setEnabled(true);
-			gameBoard.auto();
-		} else {
+	//		gameBoard.auto();
+	//	} else {
 			autoButton.setText("Auto");
 			autoButton.setToolTipText("Automatically advance the simulation");
 			stepButton.setEnabled(true);
 			//fastButton.setEnabled(false);
 			//slowButton.setEnabled(false);
-			gameBoard.auto();
+	//		gameBoard.auto();
 		}
-	}
+	//}
 
 	private void faster() {
-		gameBoard.incrementFrequency();
-		updateFrequency();
+		//gameBoard.incrementFrequency();
+		//updateFrequency();
 	}
 
 	private void slower() {
-		gameBoard.decrementFrequency();
-		updateFrequency();
+		//gameBoard.decrementFrequency();
+		//updateFrequency();
 	}
 
 //		@SuppressWarnings("unused")
-//	private void click(JButton jb) { // not used so far
+//	private void cycle(JButton jb) { // not used so far
 //		String split[] = jb.getActionCommand().split("[.]");
-//		gameBoard.click(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
+//		gameBoard.cycle(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
 //	}
 
 //	@Override
@@ -259,17 +258,17 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 //		 * (previousMouseEvent == null) { //initial case // previousMouseEvent =
 //		 * arg0; // JButton jb = (JButton) previousMouseEvent.getComponent(); //
 //		 * String[] s = jb.getActionCommand().split("[.]"); //
-//		 * gameBoard.click(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
+//		 * gameBoard.cycle(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
 //		 * else { // subsequent cases // JButton jb = (JButton)
 //		 * previousMouseEvent.getComponent(); // JButton argjb = (JButton)
 //		 * arg0.getComponent(); // if(
 //		 * !jb.getActionCommand().equals(argjb.getActionCommand())) { //
 //		 * String[] s = jb.getActionCommand().split("[.]"); //
-//		 * gameBoard.click(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
+//		 * gameBoard.cycle(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
 //		 * else { // // } // // // } // previousMouseEvent = arg0; // JButton jb
 //		 * = (JButton) arg0.getComponent(); // String[] s =
 //		 * jb.getActionCommand().split("[.]"); //
-//		 * gameBoard.click(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
+//		 * gameBoard.cycle(Integer.parseInt(s[0]), Integer.parseInt(s[1])); // }
 //		 * 
 //		 * // String origin = (JButton) arg0.getComponent().getActionCommand();
 //		 * // System.out.println("bloop"); // String command = (JButton)
@@ -277,4 +276,7 @@ public class LifeMainGUI extends JFrame implements ActionListener {
 //		 */
 //	}
 
+    public static void main(String... args) {
+
+    }
 }
