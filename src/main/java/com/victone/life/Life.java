@@ -11,7 +11,7 @@ public class Life {
     private static final boolean ALIVE = true;
     private static final boolean DEAD = false;
 
-    private Stack<boolean[][]> stack;
+    private Stack<boolean[][]> lifeHistory;
 
     private int width, height, generation;
     private boolean toroidal;
@@ -49,47 +49,40 @@ public class Life {
         }
 
         generation = 0;
-        stack = new Stack<>();
-        stack.push(lifeBoard);
+        lifeHistory = new Stack<>();
+        lifeHistory.push(lifeBoard);
     }
 
     public void expand() {
-
         width += 2;
         height += 2;
         boolean[][] bigBoard = new boolean[height][width];
-        boolean[][] oldBoard = copyOf(stack.peek());
         for (int y = 1; y < height - 1; y++) {
             for (int x = 1; x < width - 1; x++) {
-                bigBoard[y][x] = oldBoard[y-1][x-1];
+                bigBoard[y][x] = lifeHistory.peek()[y-1][x-1];
             }
         }
-        stack.push(bigBoard);
+        lifeHistory.push(bigBoard);
     }
 
     public void contract() {
         width -= 2;
         height -= 2;
         boolean[][] littleBoard = new boolean[height][width];
-        boolean[][] oldBoard = copyOf(stack.peek());
         for (int y = 0; y < height - 2; y++) {
             for (int x = 0; x < width - 2; x++) {
-                littleBoard[y][x] = oldBoard[y+1][x+1];
+                littleBoard[y][x] = lifeHistory.peek()[y+1][x+1];
             }
         }
-        stack.push(littleBoard);
-    }
-
-    public boolean isToroidal() {
-        return toroidal;
+        lifeHistory.push(littleBoard);
     }
 
     public void setToroidal(boolean toroidal) {
         this.toroidal = toroidal;
     }
 
-    public Stack<boolean[][]> getStack() {
-        return stack;
+    public Stack<boolean[][]> getLifeHistory() {
+        return lifeHistory;
     }
 
     public int getGeneration() {
@@ -105,18 +98,18 @@ public class Life {
     }
 
     public boolean cycleCell(int xCoord, int yCoord) {
-        return stack.peek()[yCoord][xCoord] = !stack.peek()[yCoord][xCoord];
+        return lifeHistory.peek()[yCoord][xCoord] = !lifeHistory.peek()[yCoord][xCoord];
     }
 
     public boolean getCell(int xCoord, int yCoord) {
         if (isCellCoordinateValid(xCoord, yCoord)) {
-            return stack.peek()[yCoord][xCoord];
+            return lifeHistory.peek()[yCoord][xCoord];
         } else {
             throw new IllegalArgumentException("Invalid cell coordinate, (" + xCoord + ", " + yCoord + ")!");
         }
     }
 
-    private boolean isCellCoordinateValid(int xCoord, int yCoord) {
+    public boolean isCellCoordinateValid(int xCoord, int yCoord) {
         return xCoord >= 0 && yCoord >= 0 && xCoord < width && yCoord < height;
     }
 
@@ -126,7 +119,7 @@ public class Life {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 numberNeighbors = getNumberNeighbors(x, y);
-                if (stack.peek()[y][x]) { //alive
+                if (lifeHistory.peek()[y][x]) { //alive
                     if (numberNeighbors == 3 || numberNeighbors == 2) {
                         newBoard[y][x] = ALIVE;
                     }
@@ -137,7 +130,7 @@ public class Life {
                 }
             }
         }
-        stack.push(newBoard);
+        lifeHistory.push(newBoard);
         generation++;
     }
 
@@ -170,8 +163,10 @@ public class Life {
                         toroidalXpos = neighborXpos;
                     }
 
+
+
                     if (isCellCoordinateValid(toroidalXpos, toroidalYpos)) {
-                        if ((toroidalXpos != xCoord || toroidalYpos != yCoord) && stack.peek()[toroidalYpos][toroidalXpos] )
+                        if ((toroidalXpos != xCoord || toroidalYpos != yCoord) && lifeHistory.peek()[toroidalYpos][toroidalXpos] )
                             numNeighbors++;
                     }
                 }
@@ -180,7 +175,7 @@ public class Life {
             for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
                 for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
                     if (isCellCoordinateValid(neighborXpos, neighborYpos)) {
-                        if ((neighborXpos != xCoord || neighborYpos != yCoord) && stack.peek()[neighborYpos][neighborXpos] )
+                        if ((neighborXpos != xCoord || neighborYpos != yCoord) && lifeHistory.peek()[neighborYpos][neighborXpos] )
                             numNeighbors++;
                     }
                 }
@@ -190,10 +185,10 @@ public class Life {
     }
 
     public void extinction() {
-        stack = new Stack<>();
+        lifeHistory = new Stack<>();
         generation = 0;
         boolean[][] newBoard = new boolean[height][width];
-        stack.push(newBoard);
+        lifeHistory.push(newBoard);
     }
 
     public void randomize(boolean clearStack) {
@@ -204,17 +199,16 @@ public class Life {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (random.nextBoolean()) {
-                    stack.peek()[y][x] = !stack.peek()[y][x];
+                    lifeHistory.peek()[y][x] = !lifeHistory.peek()[y][x];
                 }
             }
         }
     }
 
     public void invert() {
-        //flip dead cells to alive and alive cells to dead
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                stack.peek()[y][x] = !stack.peek()[y][x];
+                lifeHistory.peek()[y][x] = !lifeHistory.peek()[y][x];
             }
         }
     }
@@ -222,7 +216,7 @@ public class Life {
     @Override
     public String toString() {
         StringBuilder output = new StringBuilder("Generation ");
-        output.append(stack.size());
+        output.append(lifeHistory.size());
         output.append("\n-1");
         // first line
         for (int q = 0; q < width - 1; q++) {
@@ -238,7 +232,7 @@ public class Life {
                     else
                         output.append("|");
                 }
-                if (stack.peek()[h][w]) {
+                if (lifeHistory.peek()[h][w]) {
                     output.append("@");
                 } else {
                     output.append(" ");
@@ -257,8 +251,8 @@ public class Life {
 
     public static void main(String... args) {
         Life life = new Life(true);
-        //life.randomize(true);
-        testGlider(life);
+        life.randomize(true);
+        //testGlider(life);
         while (life.getGeneration() < 1000) {
             System.out.println(life);
             try {
@@ -278,6 +272,4 @@ public class Life {
         life.cycleCell(6, 5);
         life.cycleCell(7, 5);
     }
-
-
 }

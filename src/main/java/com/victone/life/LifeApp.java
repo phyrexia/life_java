@@ -1,6 +1,5 @@
 package com.victone.life;
 
-import com.victone.life.Life;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -26,10 +25,12 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
+import java.util.Timer;
+
 public class LifeApp extends Application {
 
     private static final String LABEL = "The Game of Life (implemented by Victor Wilson)";
-    private static final String VERSION = "2.0 beta 1";
+    private static final String VERSION = "2.0RC1";
     private static final String HELP_STRING = "Jim Conway's Game of Life\nimplemented by Victor Wilson Thanksgiving 2013\n\n"
             + "Any live cell with 2 or 3 neighbors lives. Otherwise, it dies.\n"
             + "Any dead cell with exactly three neighbors springs forth.";
@@ -37,38 +38,50 @@ public class LifeApp extends Application {
     private static final int DEFAULT_FRAMEWIDTH = 1080, DEFAULT_FRAMEHEIGHT = 768;
 
     private Life life;
-    private Button helpButton, clearButton, stepButton, randomizeButton;
-    private Label frequencyLabel, generationLabel;
-    private CheckBox toroidalCheckBox, autoCheckBox;
-
-    private Timeline timeline;
-    private Slider frequencySlider, zoomSlider;
-
-    private int fps = 2;
-    private boolean automatic;
 
     private Canvas lifeCanvas;
     private GraphicsContext gc;
 
-    private Label zoomLabel;
+    private Button helpButton, clearButton, stepButton, randomizeButton, invertButton;
+    private Label frequencyLabel, generationLabel, zoomLabel;
+    private CheckBox toroidalCheckBox, autoCheckBox;
+    private Slider speedSlider, zoomSlider;
+
+    private Timeline timeline;
+    private Timer timer;
+
+    private int fps = 2;
+    private boolean automatic;
+    private int lastClickedX = -1, lastClickedY = -1;
 
     @Override
     public void start(Stage stage) throws Exception {
         life = new Life(80, 60, false);
-        life.randomize(false);
-
 
         lifeCanvas = new Canvas(DEFAULT_FRAMEWIDTH - 20, DEFAULT_FRAMEHEIGHT - 100);
-        lifeCanvas.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        EventHandler<MouseEvent> mouseHandler = new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                double x = mouseEvent.getX();
-                double y = mouseEvent.getY();
-                System.out.println(x);
-                System.out.println(y);
+                //we're scaling 0 - x to 0 - y...
+                int xCoord = (int) (mouseEvent.getX() / (lifeCanvas.getWidth() / life.getWidth()));
+                int yCoord = (int) (mouseEvent.getY() / (lifeCanvas.getHeight() / life.getHeight()));
 
+                if (lastClickedX != xCoord || lastClickedY != yCoord) {
+                    if (life.isCellCoordinateValid(xCoord, yCoord)) {
+                        life.cycleCell(lastClickedX = xCoord, lastClickedY = yCoord);
+                        drawGameState();
+                    }
+                }
             }
-        });
+        };
+
+        lifeCanvas.setOnMouseClicked(mouseHandler);
+        lifeCanvas.setOnMouseDragEntered(mouseHandler);
+        lifeCanvas.setOnMouseDragged(mouseHandler);
+        lifeCanvas.setOnMouseDragOver(mouseHandler);
+        lifeCanvas.setOnMouseDragExited(mouseHandler);
+
+
         gc = lifeCanvas.getGraphicsContext2D();
 
         helpButton = new Button("Help");
@@ -117,9 +130,9 @@ public class LifeApp extends Application {
             public void handle(MouseEvent mouseEvent) {
                 life.extinction();
                 if (automatic) {
-                    toggleAutoMode();
+                    autoCheckBox.fire();
                 }
-                update();
+                updateScreen();
             }
         });
 
@@ -129,7 +142,7 @@ public class LifeApp extends Application {
             @Override
             public void handle(ActionEvent actionEvent) {
                 life.step();
-                redrawCanvas();
+                drawGameState();
                 updateLabels();
             }
         });
@@ -140,7 +153,17 @@ public class LifeApp extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 life.randomize(true);
-                update();
+                updateScreen();
+            }
+        });
+
+        invertButton = new Button("Invert");
+        invertButton.setTooltip(new Tooltip("Kill every living cell and resurrect every dead cell."));
+        invertButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                life.invert();
+                updateScreen();
             }
         });
 
@@ -163,28 +186,30 @@ public class LifeApp extends Application {
                         life.contract();
                     }
                 }
-                update();
+                updateScreen();
             }
         });
 
-        frequencySlider = new Slider();
-        frequencySlider.setTooltip(new Tooltip("Drag this slider to change the speed of Auto Mode"));
-        frequencySlider.setMin(1);
-        frequencySlider.setMax(25);
-        frequencySlider.setValue(2);
-        frequencySlider.valueProperty().addListener(new ChangeListener<Number>() {
+        speedSlider = new Slider();
+        speedSlider.setTooltip(new Tooltip("Drag this slider to change the speed of Auto Mode"));
+        speedSlider.setMin(1);
+        speedSlider.setMax(30);
+        speedSlider.setValue(2);
+        speedSlider.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                fps = number2.intValue();
-                if (automatic) {
-                    updateTimer();
+                if (number2.intValue() != fps) {
+                    fps = number2.intValue();
+                    if (automatic) {
+                        updateTimer();
+                    }
+                    updateLabels();
                 }
-                updateLabels();
             }
         });
 
         frequencyLabel = new Label("Speed: ");
-        generationLabel = new Label("Gen: " + life.getGeneration());
+        generationLabel = new Label("Gen:  0");
         zoomLabel = new Label("Zoom: ");
 
         autoCheckBox = new CheckBox("Auto");
@@ -207,7 +232,7 @@ public class LifeApp extends Application {
 
         HBox speedBox = new HBox();
         speedBox.setPadding(new Insets(10, 0, 10, 0));
-        speedBox.getChildren().addAll(frequencyLabel, frequencySlider);
+        speedBox.getChildren().addAll(frequencyLabel, speedSlider);
 
         HBox zoomBox = new HBox();
         zoomBox.setPadding(new Insets(10, 0, 10, 0));
@@ -217,10 +242,9 @@ public class LifeApp extends Application {
         controlBox.setPadding(new Insets(10, 10, 10, 10));
         controlBox.setMaxHeight(60);
         controlBox.setMinHeight(40);
-        controlBox.getChildren().addAll(helpButton, clearButton, randomizeButton, stepButton, zoomBox,
+        controlBox.getChildren().addAll(helpButton, clearButton, randomizeButton, invertButton, stepButton, zoomBox,
                 speedBox, autoCheckBox, toroidalCheckBox, generationLabel);
         controlBox.setAlignment(Pos.CENTER);
-
 
         HBox graphicsBox = new HBox(10);
         graphicsBox.setAlignment(Pos.CENTER);
@@ -235,44 +259,87 @@ public class LifeApp extends Application {
         scene.heightProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                clearCanvas(Color.WHITE);
+                paintCanvas(Color.WHITE);
                 lifeCanvas.setHeight(number2.doubleValue() - 60);
-                redrawCanvas();
+                drawGameState();
             }
         });
 
         scene.widthProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                clearCanvas(Color.WHITE);
+                paintCanvas(Color.WHITE);
                 lifeCanvas.setWidth(number2.doubleValue() - 20);
-                redrawCanvas();
+                drawGameState();
             }
         });
 
         stage.setScene(scene);
-        stage.setMinWidth(925);
+        stage.setMinWidth(975);
         stage.setMinHeight(305);
 
-        redrawCanvas();
+        drawGameState();
 
         stage.setTitle(LABEL + " version " + VERSION);
         stage.show();
     }
+//
+//    private void toggleAutoMode() {
+//        if (automatic = !automatic) {
+//            stepButton.setDisable(true);
+//            timer = new Timer(true);
+//            timer.scheduleAtFixedRate(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    Platform.runLater(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            stepButton.fire();
+//                            //To change body of implemented methods use File | Settings | File Templates.
+//                        }
+//                    });
+//                    }
+//
+//            }, 0, (1000 / fps));
+//        } else {
+//            stepButton.setDisable(false);
+//            timer.cancel();
+//        }
+//    }
+//
+//    private void updateTimer() {
+//       // timer.cancel();
+//        timer.scheduleAtFixedRate(new TimerTask() {
+//            @Override
+//            public void run() {
+//                Platform.runLater(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        stepButton.fire();
+//                        //To change body of implemented methods use File | Settings | File Templates.
+//                    }
+//                });
+//            }
+//
+//        }, 0, (1000 / fps));
+//    }
 
     private void toggleAutoMode() {
-        automatic = !automatic;
-        if (automatic) {
+
+        if (automatic = !automatic) {
+            stepButton.setDisable(true);
             //start the timer
             timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
+
                     stepButton.fire();
                 }
             }));
             timeline.setCycleCount(Timeline.INDEFINITE);
             timeline.play();
         } else {
+            stepButton.setDisable(false);
             //stop the timer
             timeline.stop();
         }
@@ -280,6 +347,7 @@ public class LifeApp extends Application {
 
     private void updateTimer() {
         timeline.stop();
+
         timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -291,21 +359,20 @@ public class LifeApp extends Application {
 
     }
 
-    private void update() {
-        redrawCanvas();
+    private void updateScreen() {
+        drawGameState();
         updateLabels();
     }
 
     private void updateLabels() {
-        generationLabel.setText("Gen: " + life.getGeneration());
+        generationLabel.setText((life.getGeneration() < 10 ? "Gen:  " : "Gen: ") + life.getGeneration());
     }
 
-    private void redrawCanvas() {
-        double cellWidth, cellHeight;
-        cellWidth = lifeCanvas.getWidth() / life.getWidth();
-        cellHeight = lifeCanvas.getHeight() / life.getHeight();
+    private void drawGameState() {
+        double cellWidth = lifeCanvas.getWidth() / life.getWidth();
+        double cellHeight = lifeCanvas.getHeight() / life.getHeight();
 
-        clearCanvas(Color.WHITE);
+        paintCanvas(Color.WHITE);
 
         double curX, curY = 0.0;
         for (int y = 0; y < life.getHeight(); y++) {
@@ -323,7 +390,7 @@ public class LifeApp extends Application {
         }
     }
 
-    private void clearCanvas(Color color) {
+    private void paintCanvas(Color color) {
         gc.setFill(color);
         gc.fillRect(0, 0, lifeCanvas.getWidth(), lifeCanvas.getHeight());
     }
