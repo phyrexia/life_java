@@ -1,6 +1,5 @@
 package com.victone.life;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Stack;
 
@@ -15,14 +14,6 @@ public class Life {
 
     private int width, height, generation;
     private boolean toroidal;
-
-    public static boolean[][] copyOf(boolean[][] source) {
-        boolean[][] dest = new boolean[source.length][source[0].length];
-        for (int i = 0; i < source.length; i++) {
-            dest[i] = Arrays.copyOf(source[i], source[i].length);
-        }
-        return dest;
-    }
 
     public Life() {
         this(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, false);
@@ -81,10 +72,6 @@ public class Life {
         this.toroidal = toroidal;
     }
 
-    public Stack<boolean[][]> getLifeHistory() {
-        return lifeHistory;
-    }
-
     public int getGeneration() {
         return generation;
     }
@@ -132,12 +119,6 @@ public class Life {
         }
         lifeHistory.push(newBoard);
         generation++;
-    }
-
-    public void step(int numSteps) {
-        for (int i = 1; i <= numSteps; i++) {
-            step();
-        }
     }
 
     public int getNumberNeighbors(int xCoord, int yCoord) {
@@ -263,13 +244,5 @@ public class Life {
             }
             life.step();
         }
-    }
-
-    private static void testGlider(Life life) {
-        life.cycleCell(6, 3);
-        life.cycleCell(7, 4);
-        life.cycleCell(5, 5);
-        life.cycleCell(6, 5);
-        life.cycleCell(7, 5);
     }
 }
