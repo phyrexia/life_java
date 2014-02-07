@@ -34,6 +34,7 @@ public class LifeApp extends Application {
             + "Any dead cell with exactly three neighbors springs forth.";
 
     private static final int DEFAULT_FRAMEWIDTH = 1080, DEFAULT_FRAMEHEIGHT = 768;
+    private static final boolean NEATO = true;
 
     private Life life;
 
@@ -88,7 +89,7 @@ public class LifeApp extends Application {
 
         stage.setScene(scene);
         stage.setMinWidth(975);
-        stage.setMinHeight(405);
+        stage.setMinHeight(505);
 
         drawGameState();
 
@@ -351,7 +352,6 @@ public class LifeApp extends Application {
             timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-
                     stepButton.fire();
                 }
             }));
@@ -359,7 +359,6 @@ public class LifeApp extends Application {
             timeline.play();
         } else {
             stepButton.setDisable(false);
-            //stop the timer
             timeline.stop();
         }
     }
@@ -389,7 +388,9 @@ public class LifeApp extends Application {
         double cellWidth = lifeCanvas.getWidth() / life.getWidth();
         double cellHeight = lifeCanvas.getHeight() / life.getHeight();
 
-        paintCanvas(Color.WHITE);
+        if (NEATO) {
+            paintCanvas(Color.WHITE);
+        }
 
         double curX, curY = 0.0;
         for (int y = 0; y < life.getHeight(); y++) {
