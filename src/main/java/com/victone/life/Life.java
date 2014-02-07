@@ -44,6 +44,8 @@ public class Life {
         lifeHistory.push(lifeBoard);
     }
 
+    //expand() and contract() are performance bottlenecks so we will not
+    //cleverly combine the two methods at the expense of some if statements
     public void expand() {
         width += 2;
         height += 2;
@@ -166,6 +168,7 @@ public class Life {
     }
 
     public void extinction() {
+        //clears the board and the stack of boards
         lifeHistory = new Stack<>();
         generation = 0;
         boolean[][] newBoard = new boolean[height][width];
@@ -179,9 +182,7 @@ public class Life {
         Random random = new Random();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (random.nextBoolean()) {
-                    lifeHistory.peek()[y][x] = !lifeHistory.peek()[y][x];
-                }
+                lifeHistory.peek()[y][x] = random.nextBoolean();
             }
         }
     }
