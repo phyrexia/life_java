@@ -44,7 +44,7 @@ public class Life {
         lifeHistory.push(lifeBoard);
     }
 
-    //expand() and contract() are performance bottlenecks so we will not
+    //expand() and contract() seem to be performance bottlenecks so we will not
     //cleverly combine the two methods at the expense of some if statements
     public void expand() {
         width += 2;
@@ -52,7 +52,7 @@ public class Life {
         boolean[][] bigBoard = new boolean[height][width];
         for (int y = 1; y < height - 1; y++) {
             for (int x = 1; x < width - 1; x++) {
-                bigBoard[y][x] = lifeHistory.peek()[y-1][x-1];
+                bigBoard[y][x] = lifeHistory.peek()[y - 1][x - 1];
             }
         }
         lifeHistory.push(bigBoard);
@@ -64,7 +64,7 @@ public class Life {
         boolean[][] littleBoard = new boolean[height][width];
         for (int y = 0; y < height - 2; y++) {
             for (int x = 0; x < width - 2; x++) {
-                littleBoard[y][x] = lifeHistory.peek()[y+1][x+1];
+                littleBoard[y][x] = lifeHistory.peek()[y + 1][x + 1];
             }
         }
         lifeHistory.push(littleBoard);
@@ -125,41 +125,21 @@ public class Life {
 
     public int getNumberNeighbors(int xCoord, int yCoord) {
         int numNeighbors = 0;
-        if (toroidal) {
-            for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
-                for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
-                    int toroidalYpos, toroidalXpos;
-
-                    if (neighborYpos < 0) {
-                        toroidalYpos = height + neighborYpos;
-                    } else if (neighborYpos >= height) {
-                        toroidalYpos = neighborYpos - height;
-                    } else {
-                        toroidalYpos = neighborYpos;
-                    }
-
-                    if (neighborXpos < 0) {
-                        toroidalXpos = width + neighborXpos;
-                    } else if (neighborXpos >= width) {
-                        toroidalXpos = neighborXpos - width;
-                    } else {
-                        toroidalXpos = neighborXpos;
-                    }
-
-
+        for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
+            for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
+                if (toroidal) {
+                    int toroidalYpos = neighborYpos + (neighborYpos < 0 ? height : (neighborYpos >= height ? -height : 0));
+                    int toroidalXpos = neighborXpos + (neighborXpos < 0 ? width : (neighborYpos >= width ? -width : 0));
 
                     if (isCellCoordinateValid(toroidalXpos, toroidalYpos)) {
-                        if ((toroidalXpos != xCoord || toroidalYpos != yCoord) && lifeHistory.peek()[toroidalYpos][toroidalXpos] )
+                        if ((toroidalXpos != xCoord || toroidalYpos != yCoord) && lifeHistory.peek()[toroidalYpos][toroidalXpos])
                             numNeighbors++;
                     }
-                }
-            }
-        } else {
-            for (int neighborYpos = yCoord - 1; neighborYpos <= yCoord + 1; neighborYpos++) {
-                for (int neighborXpos = xCoord - 1; neighborXpos <= xCoord + 1; neighborXpos++) {
+                } else {
                     if (isCellCoordinateValid(neighborXpos, neighborYpos)) {
-                        if ((neighborXpos != xCoord || neighborYpos != yCoord) && lifeHistory.peek()[neighborYpos][neighborXpos] )
+                        if ((neighborXpos != xCoord || neighborYpos != yCoord) && lifeHistory.peek()[neighborYpos][neighborXpos]) {
                             numNeighbors++;
+                        }
                     }
                 }
             }
@@ -209,18 +189,14 @@ public class Life {
         for (int h = 0; h < height; h++) { // go down the board
             for (int w = 0; w < width; w++) { // go across the board
                 if (w == 0) {
-                    if (h == 0) // first line only
-                        output.append("1");
-                    else
-                        output.append("|");
+                    output.append(h == 0 ? "1" : "|");
                 }
-                if (lifeHistory.peek()[h][w]) {
-                    output.append("@");
-                } else {
-                    output.append(" ");
-                }
-                if (w == width - 1)
+
+                output.append(lifeHistory.peek()[h][w] ? "@" : " " );
+
+                if (w == width - 1) {
                     output.append("|");
+                }
             }
             output.append("\n");
         }
@@ -234,11 +210,14 @@ public class Life {
     public static void main(String... args) {
         Life life = new Life(true);
         life.randomize(true);
-        //testGlider(life);
+        life.setToroidal(true);
+        int fps = 3;
+        int frequency = 1000 / fps;
+
         while (life.getGeneration() < 1000) {
             System.out.println(life);
             try {
-                Thread.sleep(250);
+                Thread.sleep(frequency);
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);
