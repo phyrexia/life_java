@@ -77,18 +77,18 @@ public class LifeApp extends Application {
 
         initToroidalCheckBox();
 
-        HBox speedBox = initSpeedBox(frequencyLabel);
-        HBox zoomBox = initZoomBox(zoomLabel);
-        HBox controlBox = initControlBox(speedBox, zoomBox);
-        HBox graphicsBox = initGraphicsBox();
+        HBox speedBox = getSpeedBox(frequencyLabel);
+        HBox zoomBox = getZoomBox(zoomLabel);
+        HBox controlBox = getControlBox(speedBox, zoomBox);
+        HBox graphicsBox = getGraphicsBox();
 
-        BorderPane root = initRootPane(controlBox, graphicsBox);
+        BorderPane root = getRootPane(controlBox, graphicsBox);
 
-        Scene scene = initScene(root);
+        Scene scene = getScene(root);
 
         stage.setScene(scene);
         stage.setMinWidth(975);
-        stage.setMinHeight(305);
+        stage.setMinHeight(405);
 
         drawGameState();
 
@@ -96,9 +96,10 @@ public class LifeApp extends Application {
         stage.show();
     }
 
-    private Scene initScene(BorderPane root) {
+    private Scene getScene(BorderPane root) {
         Scene scene = new Scene(root, DEFAULT_FRAMEWIDTH, DEFAULT_FRAMEHEIGHT);
 
+        //change the canvas dimensions when the gui window changes size
         scene.heightProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
@@ -119,21 +120,21 @@ public class LifeApp extends Application {
         return scene;
     }
 
-    private BorderPane initRootPane(HBox controlBox, HBox graphicsBox) {
+    private BorderPane getRootPane(HBox controlBox, HBox graphicsBox) {
         BorderPane root = new BorderPane();
         root.setCenter(graphicsBox);
         root.setBottom(controlBox);
         return root;
     }
 
-    private HBox initGraphicsBox() {
+    private HBox getGraphicsBox() {
         HBox graphicsBox = new HBox(10);
         graphicsBox.setAlignment(Pos.CENTER);
         graphicsBox.getChildren().add(lifeCanvas);
         return graphicsBox;
     }
 
-    private HBox initControlBox(HBox speedBox, HBox zoomBox) {
+    private HBox getControlBox(HBox speedBox, HBox zoomBox) {
         HBox controlBox = new HBox(10);
         controlBox.setPadding(new Insets(10, 10, 10, 10));
         controlBox.setMaxHeight(60);
@@ -144,14 +145,14 @@ public class LifeApp extends Application {
         return controlBox;
     }
 
-    private HBox initZoomBox(Label zoomLabel) {
+    private HBox getZoomBox(Label zoomLabel) {
         HBox zoomBox = new HBox();
         zoomBox.setPadding(new Insets(10, 0, 10, 0));
         zoomBox.getChildren().addAll(zoomLabel, zoomSlider);
         return zoomBox;
     }
 
-    private HBox initSpeedBox(Label frequencyLabel) {
+    private HBox getSpeedBox(Label frequencyLabel) {
         HBox speedBox = new HBox();
         speedBox.setPadding(new Insets(10, 0, 10, 0));
         speedBox.getChildren().addAll(frequencyLabel, speedSlider);
@@ -365,7 +366,6 @@ public class LifeApp extends Application {
 
     private void updateTimer() {
         timeline.stop();
-
         timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -374,7 +374,6 @@ public class LifeApp extends Application {
         }));
         timeline.setCycleCount(Timeline.INDEFINITE);
         timeline.play();
-
     }
 
     private void updateScreen() {
@@ -383,7 +382,7 @@ public class LifeApp extends Application {
     }
 
     private void updateLabels() {
-        generationLabel.setText((life.getGeneration() < 10 ? "Gen:  " : "Gen: ") + life.getGeneration());
+        generationLabel.setText("Gen: " + life.getGeneration());
     }
 
     private void drawGameState() {
