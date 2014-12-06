@@ -3,8 +3,6 @@ package com.victone.life;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -34,7 +32,7 @@ public class LifeApp extends Application {
             + "Any dead cell with exactly three neighbors springs forth.";
 
     private static final int DEFAULT_FRAMEWIDTH = 1080, DEFAULT_FRAMEHEIGHT = 768;
-    private static final boolean NEATO = true;
+    private static final boolean NEATO = false;
 
     private Life life;
 
@@ -52,6 +50,15 @@ public class LifeApp extends Application {
             lastClickedX = -1,
             lastClickedY = -1;
     private boolean automatic;
+
+    private EventHandler<ActionEvent> stepHandler = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent actionEvent) {
+            life.step();
+            drawGameState();
+            updateLabels();
+        }
+    };
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -101,22 +108,16 @@ public class LifeApp extends Application {
         Scene scene = new Scene(root, DEFAULT_FRAMEWIDTH, DEFAULT_FRAMEHEIGHT);
 
         //change the canvas dimensions when the gui window changes size
-        scene.heightProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                paintCanvas(Color.WHITE);
-                lifeCanvas.setHeight(number2.doubleValue() - 60);
-                drawGameState();
-            }
+        scene.heightProperty().addListener((observableValue, number, number2) -> {
+            paintCanvas(Color.WHITE);
+            lifeCanvas.setHeight(number2.doubleValue() - 60);
+            drawGameState();
         });
 
-        scene.widthProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                paintCanvas(Color.WHITE);
-                lifeCanvas.setWidth(number2.doubleValue() - 20);
-                drawGameState();
-            }
+        scene.widthProperty().addListener((observableValue, number, number2) -> {
+            paintCanvas(Color.WHITE);
+            lifeCanvas.setWidth(number2.doubleValue() - 20);
+            drawGameState();
         });
         return scene;
     }
@@ -163,23 +164,13 @@ public class LifeApp extends Application {
     private void initToroidalCheckBox() {
         toroidalCheckBox = new CheckBox("Toroidal");
         toroidalCheckBox.setTooltip(new Tooltip("Checking this box will cause the field behave as though it was on the surface of a torus."));
-        toroidalCheckBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> ov, Boolean old_val, Boolean new_val) {
-                life.setToroidal(new_val);
-            }
-        });
+        toroidalCheckBox.selectedProperty().addListener((ov, old_val, new_val) -> life.setToroidal(new_val));
     }
 
     private void initAutoCheckBox() {
         autoCheckBox = new CheckBox("Auto");
         autoCheckBox.setTooltip(new Tooltip("Checking this box will automatically step the game forward at the specified speed."));
-        autoCheckBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> ov, Boolean old_val, Boolean new_val) {
-                toggleAutoMode();
-            }
-        });
+        autoCheckBox.selectedProperty().addListener((ov, old_val, new_val) -> toggleAutoMode());
     }
 
     private void initSpeedSlider() {
@@ -187,17 +178,14 @@ public class LifeApp extends Application {
         speedSlider.setTooltip(new Tooltip("Drag this slider to change the speed of Auto Mode"));
         speedSlider.setMin(1);
         speedSlider.setMax(30);
-        speedSlider.setValue(2);
-        speedSlider.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                if (number2.intValue() != fps) {
-                    fps = number2.intValue();
-                    if (automatic) {
-                        updateTimer();
-                    }
-                    updateLabels();
+        speedSlider.setValue(4);
+        speedSlider.valueProperty().addListener((observableValue, number, number2) -> {
+            if (number2.intValue() != fps) {
+                fps = number2.intValue();
+                if (automatic) {
+                    updateTimer();
                 }
+                updateLabels();
             }
         });
     }
@@ -208,132 +196,106 @@ public class LifeApp extends Application {
         zoomSlider.setMin(-30);
         zoomSlider.setMax(20);
         zoomSlider.setValue(0);
-        zoomSlider.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number number2) {
-                if (number.intValue() > number2.intValue()) {
-                    //going down
-                    for (int i = number.intValue(); i > number2.intValue(); i--) {
-                        life.expand();
-                    }
-                } else {
-                    //going up
-                    for (int i = number.intValue(); i < number2.intValue(); i++) {
-                        life.contract();
-                    }
+        zoomSlider.valueProperty().addListener((observableValue, number, number2) -> {
+            if (number.intValue() > number2.intValue()) {
+                //going down
+                for (int i = number.intValue(); i > number2.intValue(); i--) {
+                    life.expand();
                 }
-                updateScreen();
+            } else {
+                //going up
+                for (int i = number.intValue(); i < number2.intValue(); i++) {
+                    life.contract();
+                }
             }
+            updateScreen();
         });
     }
 
     private void initInvertButton() {
         invertButton = new Button("Invert");
         invertButton.setTooltip(new Tooltip("Kill every living cell and resurrect every dead cell."));
-        invertButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                life.invert();
-                updateScreen();
-            }
+        invertButton.setOnMouseClicked(mouseEvent -> {
+            life.invert();
+            updateScreen();
         });
     }
 
     private void initRandomizeButton() {
         randomizeButton = new Button("Randomize");
         randomizeButton.setTooltip(new Tooltip("Randomize the board."));
-        randomizeButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                life.randomize(true);
-                updateScreen();
-            }
+        randomizeButton.setOnMouseClicked(mouseEvent -> {
+            life.randomize(true);
+            updateScreen();
         });
     }
 
     private void initStepButton() {
         stepButton = new Button("Step");
         stepButton.setTooltip(new Tooltip("Move the simulation forward by one step."));
-        stepButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                life.step();
-                drawGameState();
-                updateLabels();
-            }
-        });
+        stepButton.setOnAction(stepHandler);
     }
+
+
 
     private void initClearButton() {
         clearButton = new Button("Clear");
         clearButton.setTooltip(new Tooltip("Clear the board of all life."));
-        clearButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                life.extinction();
-                if (automatic) {
-                    autoCheckBox.fire();
-                }
-                updateScreen();
+        clearButton.setOnMouseClicked(mouseEvent -> {
+            life.extinction();
+            if (automatic) {
+                autoCheckBox.fire();
             }
+            updateScreen();
         });
     }
 
     private void initHelpButton() {
         helpButton = new Button("Help");
         helpButton.setTooltip(new Tooltip("You should probably just click this button instead of hovering over it."));
-        helpButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent t) {
-                Stage dialog = new Stage();
-                dialog.setResizable(false);
-                dialog.setHeight(140);
-                dialog.setWidth(450);
-                dialog.initStyle(StageStyle.TRANSPARENT);
-                dialog.initModality(Modality.APPLICATION_MODAL);
+        helpButton.setOnMouseClicked(t -> {
+            Stage dialog = new Stage();
+            dialog.setResizable(false);
+            dialog.setHeight(140);
+            dialog.setWidth(450);
+            dialog.initStyle(StageStyle.TRANSPARENT);
+            dialog.initModality(Modality.APPLICATION_MODAL);
 
-                Button ok = new Button("OK");
-                ok.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent t) {
-                        Node source = (Node) t.getSource();
-                        Stage stage = (Stage) source.getScene().getWindow();
-                        stage.close();
-                    }
-                });
+            Button ok = new Button("OK");
+            ok.setOnMouseClicked(t1 -> {
+                Node source = (Node) t1.getSource();
+                Stage stage = (Stage) source.getScene().getWindow();
+                stage.close();
+            });
 
-                HBox hb = new HBox();
-                hb.getChildren().add(ok);
-                hb.setAlignment(Pos.CENTER);
-                hb.setPadding(new Insets(10, 10, 10, 10));
+            HBox hb = new HBox();
+            hb.getChildren().add(ok);
+            hb.setAlignment(Pos.CENTER);
+            hb.setPadding(new Insets(10, 10, 10, 10));
 
-                Text text = new Text(25, 25, HELP_STRING);
-                text.setTextAlignment(TextAlignment.CENTER);
+            Text text = new Text(25, 25, HELP_STRING);
+            text.setTextAlignment(TextAlignment.CENTER);
 
-                BorderPane bp = new BorderPane();
-                bp.setCenter(text);
-                bp.setBottom(hb);
-                Scene scene = new Scene(bp);
-                dialog.setScene(scene);
-                dialog.show();
-            }
+            BorderPane bp = new BorderPane();
+            bp.setCenter(text);
+            bp.setBottom(hb);
+            Scene scene = new Scene(bp);
+            dialog.setScene(scene);
+            dialog.show();
         });
     }
 
     private void initLifeCanvas() {
         lifeCanvas = new Canvas(DEFAULT_FRAMEWIDTH - 20, DEFAULT_FRAMEHEIGHT - 100);
-        EventHandler<MouseEvent> mouseHandler = new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                //we're scaling 0 - x to 0 - y...
-                int xCoord = (int) (mouseEvent.getX() / (lifeCanvas.getWidth() / life.getWidth()));
-                int yCoord = (int) (mouseEvent.getY() / (lifeCanvas.getHeight() / life.getHeight()));
+        EventHandler<MouseEvent> mouseHandler = mouseEvent -> {
+            //we're scaling 0 - x to 0 - y...
+            int xCoord = (int) (mouseEvent.getX() / (lifeCanvas.getWidth() / life.getWidth()));
+            int yCoord = (int) (mouseEvent.getY() / (lifeCanvas.getHeight() / life.getHeight()));
 
-                if (lastClickedX != xCoord || lastClickedY != yCoord) {
-                    if (life.isCellCoordinateValid(xCoord, yCoord)) {
-                        life.cycleCell(lastClickedX = xCoord, lastClickedY = yCoord);
-                        drawGameState();
-                    }
+            if (lastClickedX != xCoord || lastClickedY != yCoord) {
+                if (life.isCellCoordinateValid(xCoord, yCoord)) {
+                    life.cycleCell(lastClickedX = xCoord, lastClickedY = yCoord);
+                    drawGameState();
                 }
             }
         };
@@ -352,7 +314,7 @@ public class LifeApp extends Application {
             timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    stepButton.fire();
+                    stepHandler.handle(new ActionEvent());
                 }
             }));
             timeline.setCycleCount(Timeline.INDEFINITE);
@@ -368,7 +330,7 @@ public class LifeApp extends Application {
         timeline = new Timeline(new KeyFrame(Duration.millis(1000 / fps), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                stepButton.fire();
+                stepHandler.handle(new ActionEvent());
             }
         }));
         timeline.setCycleCount(Timeline.INDEFINITE);

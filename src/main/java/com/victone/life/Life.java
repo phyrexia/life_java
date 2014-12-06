@@ -181,28 +181,26 @@ public class Life {
         output.append(lifeHistory.size());
         output.append("\n-1");
         // first line
-        for (int q = 0; q < width - 1; q++) {
+        for (int q = 0; q < width - 1; q++)
             output.append("-");
-        }
+
         output.append("\n");
 
-        for (int h = 0; h < height; h++) { // go down the board
+        for (int h = 0; h < height; h++) // go down the board
             for (int w = 0; w < width; w++) { // go across the board
-                if (w == 0) {
+                if (w == 0)
                     output.append(h == 0 ? "1" : "|");
-                }
 
                 output.append(lifeHistory.peek()[h][w] ? "@" : " " );
 
-                if (w == width - 1) {
+                if (w == width - 1)
                     output.append("|");
-                }
             }
             output.append("\n");
-        }
-        for (int q = 0; q <= width + 1; q++) {
+
+        for (int q = 0; q <= width + 1; q++)
             output.append("-");
-        }
+
         output.append("\n");
         return output.toString();
     }
